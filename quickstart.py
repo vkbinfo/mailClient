@@ -2,6 +2,15 @@ from __future__ import print_function
 import httplib2
 import os
 
+# for db session sqlite import
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker
+from model import Base, MailTable, Label
+
+#for unicode to string
+import unicodedata
+
+#for gmail python client
 import base64
 from apiclient import discovery
 from oauth2client import client
@@ -21,6 +30,12 @@ SCOPES = 'https://www.googleapis.com/auth/gmail.readonly'
 CLIENT_SECRET_FILE = 'client_secret.json'
 APPLICATION_NAME = 'Gmail API Python Quickstart'
 
+#let's Connect to Database and create database session
+engine = create_engine('sqlite:///mails.db')
+Base.metadata.bind = engine
+
+DBSession = sessionmaker(bind=engine)
+session = DBSession()
 
 def get_credentials():
     """Gets valid user credentials from storage.
@@ -73,26 +88,50 @@ def main():
     # let's get messages from google server
     try:
         response = service.users().messages().list(userId='me',
-                                                   maxResults=2000).execute()
+                                                   maxResults=20).execute()
         print("what")
         for x in response['messages']:
             mail_id = x['id']
             #let's get the message from server
             headers = ['X-Original-To','Message-ID','Date','Delivered-To']
-            message = service.users().messages().get(userId='me', id=mail_id, format='full').execute()
+            message = service.users().messages().get(userId='me', id=mail_id,
+                                                     format='full').execute()
             print(message.keys())
-            date_of_mail_long_ms = ['internalDate']
+            date_of_mail_long_ms = message['internalDate']
             #let's get all the labeles of this mail
             mail_labels = message["labelIds"]
-            print(mail_labels)
             #get headers to, from
             headers = message['payload']['headers']
-            mail_from = headers[-4]['value']
-            mail_to = headers[-3]['value']
-            mail_subject = headers[-1]['value']
-            mail_text = base64.urlsafe_b64decode(message['payload']['parts'][0]['body']['data'].encode("ASCII"))
-            exit(1)
+            # we need to convert byte string to unicode string so we can save them into database
+            for x in headers:
+                if x['name'].decode('unicode_escape') == "Subject":
+                    print("subject")
+                    mail_subject = unicodedata.normalize('NFKD', x['value']).encode('ascii','ignore')
+                    print(mail_subject)
+            for x in headers:
+                if x['name'].decode('unicode_escape') == "From":
+                    print("From")
+                    mail_from = unicodedata.normalize('NFKD', x['value']).encode('ascii','ignore')
+                    print(mail_from)
+            for x in headers:
+                if x['name'].decode('unicode_escape') == "To":
+                    print("To")
+                    mail_to = unicodedata.normalize('NFKD', x['value']).encode('ascii','ignore')
+                    print(type(mail_to))
+            mail_text="".encode("utf8")
+            if message['payload'].get('parts'):
+                mail_text = base64.urlsafe_b64decode(message['payload']['parts'][0]['body']['data'].encode("UTF8"))
 
+
+
+            print(mail_text)
+            newMailObj = MailTable( mail_time=date_of_mail_long_ms,
+                                    mail_from=mail_from,
+                                    mail_to=mail_to,
+                                    subject=mail_subject,
+                                    text_of_body=mail_text.decode('unicode_escape'))
+            session.add(newMailObj)
+            session.commit()
     except errors.HttpError, error:
         print('An error occurred: %s' % error)
 
