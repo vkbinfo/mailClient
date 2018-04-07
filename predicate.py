@@ -90,8 +90,6 @@ def enumerate_list(list_data):
 
 
 def apply_action(predicate_list, all):
-    print("imhere")
-    print(all)
     mails=[]
     if all:
         # all conditions should be true to get mail into mails
@@ -102,28 +100,96 @@ def apply_action(predicate_list, all):
             for predicate in predicate_list:
                 if should_break:
                     break
+                print(predicate)
                 if predicate.get("predicates_for_date"):
                     current_time_in_ms=int(round(time.time() * 1000))
                     total_time_duration_for_query = 86400000*predicate['search_days']
                     time_for_comparison = current_time_in_ms- int(total_time_duration_for_query)
                     if predicate["predicates_for_date"] =="greater than":
                         if s < time_for_comparison:
-                            mails.append(mail)
+                            pass
                         else:
                             should_break = True
                     else:
                         # it is about less than
                         if s > time_for_comparison:
-                            mails.append(mail)
+                            pass
                         else:
                             should_break = True
                 else:
                     # it means that it is about some string, that contains or something equal
-                    pass
+                    # Field = ["From", "To",  "Subject", "Date Received" ]
+                    if predicate['field'] == 'From':
+                        # predicates_for_string = ["contains", "Does not contain","equals", "not equals" ]
+                        if predicate["predicates_for_string"] == "contains":
+                            if mail.mail_from.find(predicate['search_string'])> -1:
+                                pass
+                            else:
+                                should_break = True
+                        if predicate["predicates_for_string"] == "Does not contain":
+                            if mail.mail_from.find(predicate['search_string'])> -1:
+                                should_break = True
+                            else:
+                                 pass
+                        if predicate["predicates_for_string"] == "equals":
+                            if mail.mail_from == predicate['search_string']:
+                                pass
+                            else:
+                                should_break = True
+                        if predicate["predicates_for_string"] == "not equals":
+                            if mail.mail_from == predicate['search_string']:
+                                should_break = True
+                            else:
+                                pass
+                    if predicate['field'] == 'To':
+                        if predicate["predicates_for_string"] == "contains":
+                            if mail.mail_to.find(predicate['search_string'])> -1:
+                                pass
+                            else:
+                                should_break = True
+                        if predicate["predicates_for_string"] == "Does not contain":
+                            if mail.mail_to.find(predicate['search_string'])> -1:
+                                should_break = True
+                            else:
+                                 pass
+                        if predicate["predicates_for_string"] == "equals":
+                            if mail.mail_to == predicate['search_string']:
+                                pass
+                            else:
+                                should_break = True
+                        if predicate["predicates_for_string"] == "not equals":
+                            if mail.mail_to == predicate['search_string']:
+                                should_break = True
+                            else:
+                                pass
+                    if predicate['field'] == 'Subject':
+                        if predicate["predicates_for_string"] == "contains":
+                            if mail.subject.find(predicate['search_string'])> -1:
+                                pass
+                            else:
+                                should_break = True
+                        if predicate["predicates_for_string"] == "Does not contain":
+                            if mail.subject.find(predicate['search_string'])> -1:
+                                should_break = True
+                            else:
+                                 pass
+                        if predicate["predicates_for_string"] == "equals":
+                            if mail.subject == predicate['search_string']:
+                                pass
+                            else:
+                                should_break = True
+                        if predicate["predicates_for_string"] == "not equals":
+                            if mail.subject == predicate['search_string']:
+                                should_break = True
+                            else:
+                                pass
+            if not should_break:
+                mails.append(mail)
+
         for x in mails:
-            print(datetime.datetime.fromtimestamp(x.mail_time/1000.0).strftime('%Y-%m-%d %H:%M:%S.%f'))
+            print(x.mail_from)
     else:
-        #anyconditions
+        # for any conditions, atleast one predicate must be true to add into mails
         mail_objects = session.query(MailTable)
         for mail in mail_objects:
             s = mail.mail_time
@@ -143,9 +209,84 @@ def apply_action(predicate_list, all):
                             break
                 else:
                     # it means that it is about some string, that contains or something equal
-                    pass
+                    # Field = ["From", "To",  "Subject", "Date Received" ]
+                    if predicate['field'] == 'From':
+                        # predicates_for_string = ["contains", "Does not contain","equals", "not equals" ]
+                        if predicate["predicates_for_string"] == "contains":
+                            if mail.mail_from.find(predicate['search_string']) > -1:
+                                mails.append(mail)
+                                break
+                        if predicate["predicates_for_string"] == "Does not contain":
+                            if mail.mail_from.find(predicate['search_string']) > -1:
+                                pass
+                            else:
+                                mails.append(mail)
+                                break
+                        if predicate["predicates_for_string"] == "equals":
+                            if mail.mail_from == predicate['search_string']:
+                                mails.append(mail)
+                                break
+                            else:
+                                pass
+                        if predicate["predicates_for_string"] == "not equals":
+                            if mail.mail_from == predicate['search_string']:
+                                pass
+                            else:
+                                mails.append(mail)
+                                break
+                    if predicate['field'] == 'To':
+                        if predicate["predicates_for_string"] == "contains":
+                            if mail.mail_to.find(predicate['search_string']) > -1:
+                                mails.append(mail)
+                                break
+                            else:
+                                pass
+                        if predicate["predicates_for_string"] == "Does not contain":
+                            if mail.mail_to.find(predicate['search_string']) > -1:
+                                pass
+                            else:
+                                mails.append(mail)
+                                break
+                        if predicate["predicates_for_string"] == "equals":
+                            if mail.mail_to == predicate['search_string']:
+                                mails.append(mail)
+                                break
+                            else:
+                                pass
+                        if predicate["predicates_for_string"] == "not equals":
+                            if mail.mail_to == predicate['search_string']:
+                                pass
+                            else:
+                                mails.append(mail)
+                                break
+                    if predicate['field'] == 'Subject':
+                        if predicate["predicates_for_string"] == "contains":
+                            if mail.subject.find(predicate['search_string']) > -1:
+                                mails.append(mail)
+                                break
+                            else:
+                                pass
+                        if predicate["predicates_for_string"] == "Does not contain":
+                            if mail.subject.find(predicate['search_string']) > -1:
+                                pass
+                            else:
+                                mails.append(mail)
+                                break
+                        if predicate["predicates_for_string"] == "equals":
+                            if mail.subject == predicate['search_string']:
+                                mails.append(mail)
+                                break
+                            else:
+                                pass
+                        if predicate["predicates_for_string"] == "not equals":
+                            if mail.subject == predicate['search_string']:
+                                pass
+                            else:
+                                mails.append(mail)
+                                break
         for x in mails:
-            print(datetime.datetime.fromtimestamp(x.mail_time / 1000.0).strftime('%Y-%m-%d %H:%M:%S.%f'))
+            print(x.subject)
+
 
 if __name__ == '__main__':
     main()
