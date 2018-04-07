@@ -1,3 +1,9 @@
+# for db session sqlite import
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker
+from model import Base, MailTable, Label
+import datetime
+import time
 
 Field = ["From", "To",  "Subject", "Date Received" ]
 predicates_for_string = ["contains", "Does not contain","equals", "not equals" ]
@@ -5,6 +11,12 @@ predicates_for_date = ["greater than", "less than"]
 
 actions = ["mark as read","mark as unread","archieve message", "Add label"]
 
+#let's Connect to Database and create database session
+engine = create_engine('sqlite:///mails.db')
+Base.metadata.bind = engine
+
+DBSession = sessionmaker(bind=engine)
+session = DBSession()
 
 def main():
     predicate_list=[]
@@ -78,13 +90,62 @@ def enumerate_list(list_data):
 
 
 def apply_action(predicate_list, all):
+    print("imhere")
+    print(all)
     mails=[]
     if all:
-        pass
-        #all conditions should be true
+        # all conditions should be true to get mail into mails
+        mail_objects=session.query(MailTable)
+        for mail in mail_objects:
+            s=mail.mail_time
+            should_break = False
+            for predicate in predicate_list:
+                if should_break:
+                    break
+                if predicate.get("predicates_for_date"):
+                    current_time_in_ms=int(round(time.time() * 1000))
+                    total_time_duration_for_query = 86400000*predicate['search_days']
+                    time_for_comparison = current_time_in_ms- int(total_time_duration_for_query)
+                    if predicate["predicates_for_date"] =="greater than":
+                        if s < time_for_comparison:
+                            mails.append(mail)
+                        else:
+                            should_break = True
+                    else:
+                        # it is about less than
+                        if s > time_for_comparison:
+                            mails.append(mail)
+                        else:
+                            should_break = True
+                else:
+                    # it means that it is about some string, that contains or something equal
+                    pass
+        for x in mails:
+            print(datetime.datetime.fromtimestamp(x.mail_time/1000.0).strftime('%Y-%m-%d %H:%M:%S.%f'))
     else:
-        pass
         #anyconditions
+        mail_objects = session.query(MailTable)
+        for mail in mail_objects:
+            s = mail.mail_time
+            for predicate in predicate_list:
+                if predicate.get("predicates_for_date"):
+                    current_time_in_ms = int(round(time.time() * 1000))
+                    total_time_duration_for_query = 86400000 * predicate['search_days']
+                    time_for_comparison = current_time_in_ms - int(total_time_duration_for_query)
+                    if predicate["predicates_for_date"] == "greater than":
+                        if s < time_for_comparison:
+                            mails.append(mail)
+                            break
+                    else:
+                        # it is about less than
+                        if s > time_for_comparison:
+                            mails.append(mail)
+                            break
+                else:
+                    # it means that it is about some string, that contains or something equal
+                    pass
+        for x in mails:
+            print(datetime.datetime.fromtimestamp(x.mail_time / 1000.0).strftime('%Y-%m-%d %H:%M:%S.%f'))
 
 if __name__ == '__main__':
     main()

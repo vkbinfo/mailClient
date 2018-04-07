@@ -77,7 +77,7 @@ def main():
     #let's get messages from google server
     try:
         response = service.users().messages().list(userId='me',
-                                                   maxResults=20).execute()
+                                                   maxResults=500).execute()
         for x in response['messages']:
             mail_id = x['id']
             #let's get the message from server
@@ -99,9 +99,19 @@ def main():
             for x in headers:
                 if x['name'].decode('unicode_escape') == "To":
                     mail_to = unicodedata.normalize('NFKD', x['value']).encode('ascii','ignore')
-            mail_text="".encode("utf8")
-            if message['payload'].get('parts'):
+            # Gmail api's sends different response, depending on the mail format, so
+            #  we have to deal with different responses
+            if message['payload']['body'].get('data'):
+                mail_text = base64.urlsafe_b64decode(
+                    message['payload']['body']['data'].encode("UTF8"))
+            elif message['payload']['parts'][0]['body'].get('data'):
                 mail_text = base64.urlsafe_b64decode(message['payload']['parts'][0]['body']['data'].encode("UTF8"))
+                print('counted')
+            else:
+                messages = message['payload']['parts'][0]['parts']
+                for x in messages:
+                    if x['mimeType'].decode('unicode_escape') =='text/plain':
+                        mail_text = base64.urlsafe_b64decode(x['body']['data'].encode("UTF8"))
             newMailObj = MailTable( mail_id=mail_id,
                                     mail_time=date_of_mail_long_ms,
                                     mail_from=mail_from,
