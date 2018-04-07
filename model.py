@@ -11,6 +11,7 @@ Base = declarative_base()
 class  MailTable(Base):
     __tablename__ = 'mailTable'
     id = Column(Integer, primary_key=True)
+    mail_id = Column(Integer, unique=True)
     mail_time = Column(BigInteger)
     mail_from = Column(Text)
     mail_to = Column(Text)
@@ -21,9 +22,9 @@ class  MailTable(Base):
 class Label(Base):
     __tablename__ = 'lable'
     id = Column(Integer, primary_key=True)
-    mail_label= Column(UnicodeText(250), nullable=False)
-    mail_id = Column(Integer, ForeignKey('mailTable.id'))
-    mail = relationship(MailTable)
+    mail_label= Column(Text(250), nullable=False)
+    mail_id = Column(Integer, ForeignKey('mailTable.mail_id'))
+    mailTable= relationship(MailTable)
 
 
 engine = create_engine('sqlite:///mails.db')

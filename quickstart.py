@@ -68,72 +68,57 @@ def get_credentials():
 def main():
     """Shows basic usage of the Gmail API.
 
-    Creates a Gmail API service object and outputs a list of label names
-    of the user's Gmail account.
+    Creates a Gmail API service object and stores some message in database
+    from the user's Gmail account.
     """
     credentials = get_credentials()
     http = credentials.authorize(httplib2.Http())
     service = discovery.build('gmail', 'v1', http=http)
-
-    results = service.users().labels().list(userId='me').execute()
-    labels = results.get('labels', [])
-
-    if not labels:
-        print('No labels found.')
-    else:
-      print('Labels:')
-      for label in labels:
-        print(label['name'])
-
-    # let's get messages from google server
+    #let's get messages from google server
     try:
         response = service.users().messages().list(userId='me',
                                                    maxResults=20).execute()
-        print("what")
         for x in response['messages']:
             mail_id = x['id']
             #let's get the message from server
             headers = ['X-Original-To','Message-ID','Date','Delivered-To']
             message = service.users().messages().get(userId='me', id=mail_id,
                                                      format='full').execute()
-            print(message.keys())
             date_of_mail_long_ms = message['internalDate']
             #let's get all the labeles of this mail
             mail_labels = message["labelIds"]
-            #get headers to, from
+            #let's get headers for subject, to, and from
             headers = message['payload']['headers']
-            # we need to convert byte string to unicode string so we can save them into database
+            # we need to convert unicode to string so we can save them into database
             for x in headers:
                 if x['name'].decode('unicode_escape') == "Subject":
-                    print("subject")
                     mail_subject = unicodedata.normalize('NFKD', x['value']).encode('ascii','ignore')
-                    print(mail_subject)
             for x in headers:
                 if x['name'].decode('unicode_escape') == "From":
-                    print("From")
                     mail_from = unicodedata.normalize('NFKD', x['value']).encode('ascii','ignore')
-                    print(mail_from)
             for x in headers:
                 if x['name'].decode('unicode_escape') == "To":
-                    print("To")
                     mail_to = unicodedata.normalize('NFKD', x['value']).encode('ascii','ignore')
-                    print(type(mail_to))
             mail_text="".encode("utf8")
             if message['payload'].get('parts'):
                 mail_text = base64.urlsafe_b64decode(message['payload']['parts'][0]['body']['data'].encode("UTF8"))
-
-
-
-            print(mail_text)
-            newMailObj = MailTable( mail_time=date_of_mail_long_ms,
+            newMailObj = MailTable( mail_id=mail_id,
+                                    mail_time=date_of_mail_long_ms,
                                     mail_from=mail_from,
                                     mail_to=mail_to,
                                     subject=mail_subject,
                                     text_of_body=mail_text.decode('unicode_escape'))
             session.add(newMailObj)
             session.commit()
+            #now lets add label for this mail
+            for x in mail_labels:
+                label=unicodedata.normalize('NFKD', x).encode('ascii','ignore');
+                new_Label_obj = Label(mail_label = label, mail_id=mail_id )
+                session.add(new_Label_obj)
+                session.commit()
     except errors.HttpError, error:
         print('An error occurred: %s' % error)
+
 
 if __name__ == '__main__':
     main()
