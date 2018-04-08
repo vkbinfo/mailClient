@@ -106,7 +106,6 @@ def main():
                     message['payload']['body']['data'].encode("UTF8"))
             elif message['payload']['parts'][0]['body'].get('data'):
                 mail_text = base64.urlsafe_b64decode(message['payload']['parts'][0]['body']['data'].encode("UTF8"))
-                print('counted')
             else:
                 messages = message['payload']['parts'][0]['parts']
                 for x in messages:

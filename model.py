@@ -26,6 +26,15 @@ class Label(Base):
     mail_id = Column(String(200), ForeignKey('mailTable.mail_id'))
     mailTable= relationship(MailTable)
 
+class  Archive(Base):
+    __tablename__ = 'archive'
+    id = Column(Integer, primary_key=True)
+    mail_id = Column(String(200), unique=True)
+    mail_time = Column(BigInteger)
+    mail_from = Column(Text)
+    mail_to = Column(Text)
+    subject = Column(Text)
+    text_of_body = Column(UnicodeText)
 
 engine = create_engine('sqlite:///mails.db')
 
